@@ -10,6 +10,48 @@ import { OuraDayData } from '../types';
  * This works natively in the browser on static hosts such as GitHub Pages because the Oura V2 API 
  * supports CORS for bearer-authenticated requests.
  */
+async function fetchWithCorsProxy(url: string, headers: Record<string, string>): Promise<Response> {
+  // 1. Try direct fetch first
+  try {
+    const res = await fetch(url, { headers, mode: 'cors' });
+    if (res.ok || res.status === 401) {
+      return res;
+    }
+  } catch (err) {
+    console.warn(`Direct client fetch to Oura API failed (CORS/Network error). Retrying through proxy...`, err);
+  }
+
+  // 2. Try corsproxy.io
+  try {
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl, { headers });
+    if (res.ok || res.status === 401) {
+      return res;
+    }
+  } catch (err) {
+    console.warn(`corsproxy.io failed. Retrying through allorigins...`, err);
+  }
+
+  // 3. Try allorigins.win (extremely reliable fallback proxy)
+  try {
+    const fallbackUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res = await fetch(fallbackUrl, { headers });
+    if (res.ok || res.status === 401) {
+      return res;
+    }
+  } catch (err) {
+    console.error(`All Oura API proxy options failed to fetch.`, err);
+  }
+
+  // Fallback to direct fetch one more time to throw normal network error
+  return fetch(url, { headers, mode: 'cors' });
+}
+
+/**
+ * Perform direct client-side fetch from the Oura Ring V2 Cloud API using a Personal Access Token (PAT).
+ * Since Oura API restricts CORS inside browser-contexts, we route requests through secure free CORS proxies
+ * on static environments like GitHub Pages.
+ */
 export async function syncOuraClientSide(token: string): Promise<OuraDayData[]> {
   // Pull previous 30 days of trends
   const endDate = new Date();
@@ -26,10 +68,10 @@ export async function syncOuraClientSide(token: string): Promise<OuraDayData[]> 
   };
 
   const [sleepRes, dailySleepRes, dailyActivityRes, dailyReadinessRes] = await Promise.all([
-    fetch(`https://api.ouraring.com/v2/usercollection/sleep?start_date=${startDateStr}&end_date=${endDateStr}`, { headers, mode: 'cors' }),
-    fetch(`https://api.ouraring.com/v2/usercollection/daily_sleep?start_date=${startDateStr}&end_date=${endDateStr}`, { headers, mode: 'cors' }),
-    fetch(`https://api.ouraring.com/v2/usercollection/daily_activity?start_date=${startDateStr}&end_date=${endDateStr}`, { headers, mode: 'cors' }),
-    fetch(`https://api.ouraring.com/v2/usercollection/daily_readiness?start_date=${startDateStr}&end_date=${endDateStr}`, { headers, mode: 'cors' }),
+    fetchWithCorsProxy(`https://api.ouraring.com/v2/usercollection/sleep?start_date=${startDateStr}&end_date=${endDateStr}`, headers),
+    fetchWithCorsProxy(`https://api.ouraring.com/v2/usercollection/daily_sleep?start_date=${startDateStr}&end_date=${endDateStr}`, headers),
+    fetchWithCorsProxy(`https://api.ouraring.com/v2/usercollection/daily_activity?start_date=${startDateStr}&end_date=${endDateStr}`, headers),
+    fetchWithCorsProxy(`https://api.ouraring.com/v2/usercollection/daily_readiness?start_date=${startDateStr}&end_date=${endDateStr}`, headers),
   ]);
 
   if (sleepRes.status === 401 || dailySleepRes.status === 401) {
