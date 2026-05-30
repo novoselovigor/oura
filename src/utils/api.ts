@@ -16,11 +16,21 @@ export function getApiUrl(endpoint: string): string {
   const origin = window.location.origin;
   const protocol = window.location.protocol;
 
-  // Detect native wrapper contexts (capacitor://, file://, http://localhost on Android, iOS WebViews)
+  // Detect local development environment
+  const isLocalHost = 
+    origin.includes('localhost') || 
+    origin.includes('127.0.0.1') || 
+    origin.includes('0.0.0.0') || 
+    origin.includes('192.168.');
+
+  // Is this running on our pre-deployed Cloud Run instance?
+  const isCloudRun = origin.includes('725244677094.europe-west2.run.app');
+
+  // Detect native wrapper contexts or static production environments like GitHub Pages
   const isCapacitor = 
     protocol.startsWith('capacitor') || 
     protocol.startsWith('file') || 
-    (origin.includes('localhost') && !(origin.includes(':3000') || origin.includes(':5173') || origin.includes(':80')));
+    (!isLocalHost && !isCloudRun);
 
   if (isCapacitor) {
     const prodServerUrl = 'https://ais-pre-dm7yxak63mnpcrfpzyd5q6-725244677094.europe-west2.run.app';

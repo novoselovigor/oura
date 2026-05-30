@@ -203,9 +203,9 @@ export default function UploadZone({ onDataParsed, onReset, isCustomDataLoaded, 
     setErrorMsg(null);
     setSuccessMsg(null);
     try {
-      const redirectUriBase = window.location.origin.startsWith('http://localhost') || window.location.origin.startsWith('capacitor://') || window.location.origin.startsWith('file://')
-        ? 'https://ais-pre-dm7yxak63mnpcrfpzyd5q6-725244677094.europe-west2.run.app'
-        : window.location.origin;
+      const redirectUriBase = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
+        ? window.location.origin
+        : 'https://ais-pre-dm7yxak63mnpcrfpzyd5q6-725244677094.europe-west2.run.app';
       const redirectUri = `${redirectUriBase}/auth/callback`;
       const response = await fetch(getApiUrl(`/api/auth/url?redirect_uri=${encodeURIComponent(redirectUri)}`));
       
