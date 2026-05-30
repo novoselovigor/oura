@@ -15,11 +15,6 @@ export async function analyzeOuraClientSide(data: any[], apiKey: string): Promis
 
   const ai = new GoogleGenAI({
     apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
-    }
   });
 
   // Prepare metric series description for Gemini
@@ -78,11 +73,6 @@ export async function chatWithCoachClientSide(messages: any[], data: any[], apiK
 
   const ai = new GoogleGenAI({
     apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
-    }
   });
 
   let contextStr = 'No Oura data is loaded yet.';
